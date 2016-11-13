@@ -1,25 +1,49 @@
-//global package
 import express from 'express';
 import cors from 'cors';
-import mongoose from 'mongoose'
 import Promise from 'bluebird'
 import bodyParser from 'body-parser'
-import saveDataInDb from './saveDataInDb'
-import Pet from './models/Pet'
-import User from './models/User'
-import isAdmin from './middlewares/isAdmin'
+import isomorphic from 'isomorphic-fetch'
+
+
+import upLoadObject from './middlewares/upLoadObject'
+import find from './find'
 
 const __DEV__ = true;
 
 
-
-mongoose.Promise = Promise;
-mongoose.connect('mongodb://publicdb.mgbeta.ru/votrin_skd3');
-
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
+app.use(upLoadObject);
 
+app.get('/', async (req, res) => {
+
+    return res.send(JSON.stringify((req.pc)));
+})
+app.get('/volumes', async (req, res) => {
+    var inputValue = req.pc.hdd;
+    var result = {};
+    for(var i=0;i<inputValue.length;i++){
+
+        result[inputValue[i].volume] = ((result[inputValue[i].volume])? result[inputValue[i].volume]:0) + Number(inputValue[i].size);
+    }
+    return res.send(JSON.stringify(result));
+})
+
+app.get('/*', async (req, res) => {
+    var regex = new RegExp('/', 'g');
+    var findSearch = (req.params[0]).split(regex);
+    var result = find(req.pc, findSearch)
+    if (result == 'Not Found') {return res.status(404).send(result);}
+    else {return res.send(JSON.stringify(result));}
+})
+
+
+
+
+//Добавляем mw для загрузки объекта при старте
+
+/*
 app.get('/users',isAdmin, async (req, res) => {
     const users = await User.find();
     return res.json(users);
@@ -54,6 +78,8 @@ app.post('/data',async (req, res) => {
         return res.status(500).json(err);
     }
 })
+*/
+
 app.listen(3000, function () {
     console.log('Example app listening on port 3000');
 })
